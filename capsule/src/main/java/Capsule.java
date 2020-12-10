@@ -4278,7 +4278,7 @@ public class Capsule implements Runnable, InvocationHandler {
         return javaHome.resolve("bin").resolve(exec + (isWindows() ? ".exe" : ""));
     }
 
-    private static final Pattern PAT_JAVA_VERSION_LINE = Pattern.compile(".*?\"(.+?)\"");
+    private static final Pattern PAT_JAVA_VERSION_LINE = Pattern.compile(".*?\"(.+?)\".*");
 
     private static String getActualJavaVersion(Path javaHome) {
         try {
@@ -4349,7 +4349,7 @@ public class Capsule implements Runnable, InvocationHandler {
     }
 
     private static int compareVersions(int[] a, int[] b) {
-        return compareVersions(a, b, 5);
+        return compareVersions(a, b, Math.min(a.length, b.length));
     }
 
     private static int compareVersions(int[] a, int[] b, int n) {
@@ -4368,19 +4368,27 @@ public class Capsule implements Runnable, InvocationHandler {
         return true;
     }
 
-    private static final Pattern PAT_JAVA_VERSION = Pattern.compile("(?<major>\\d+)(\\.(?<minor>\\d+))?(?:\\.(?<patch>\\d+))?(_(?<update>\\d+))?(-(?<pre>[^-]+))?(-(?<build>.+))?");
+    private static final Pattern PAT_JAVA_VERSION = Pattern.compile("(?<major>1)(\\.(?<minor>\\d+))?(?:\\.(?<patch>\\d+))?(_(?<update>\\d+))?(-(?<pre>[^-]+))?(-(?<build>.+))?");
+    // from https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Runtime.Version.html
+    private static final Pattern PAT_JAVA_VERSION_JDK10 = Pattern.compile("(?<major>\\d+)(\\.(?<minor>\\d+))?(?:\\.(?<patch>\\d+))?(\\.(?<update>\\d+))?(-(?<pre>[^-]+))?.*");
 
     // visible for testing
     static int[] parseJavaVersion(String v) {
-        final Matcher m = PAT_JAVA_VERSION.matcher(v);
+        Matcher m = PAT_JAVA_VERSION.matcher(v);
         if (!m.matches())
-            throw new IllegalArgumentException("Could not parse version: " + v);
+        {
+            m = PAT_JAVA_VERSION_JDK10.matcher(v);
+            if (!m.matches())
+            {
+                throw new IllegalArgumentException("Could not parse version: " + v);
+            }
+        }
         final int[] ver = new int[5];
         ver[0] = toInt(m.group("major"));
         ver[1] = toInt(m.group("minor"));
         ver[2] = toInt(m.group("patch"));
         ver[3] = toInt(m.group("update"));
-        if (ver[0] > 1 && ver[1] == 0) {
+        if (ver[0] > 1 && ver[0] < 9 && ver[1] == 0) {
             ver[1] = ver[0];
             ver[0] = 1;
         }
@@ -4403,7 +4411,10 @@ public class Capsule implements Runnable, InvocationHandler {
         sb.append(version[1]).append('.');
         sb.append(version[2]);
         if (version.length > 3 && version[3] > 0)
-            sb.append('_').append(version[3]);
+        {
+            char sep = version[0]>9 ? '.':'_';
+            sb.append(sep).append(version[3]);
+        }
         if (version.length > 4 && version[4] != 0) {
             final String pre;
             switch (version[4]) {
@@ -5593,11 +5604,11 @@ public class Capsule implements Runnable, InvocationHandler {
             
             if (platformMBeanServer instanceof com.sun.jmx.mbeanserver.JmxMBeanServer) {
                 final MBeanServer interceptor = (MBeanServer) Proxy.newProxyInstance(MY_CLASSLOADER, new Class<?>[]{MBeanServer.class}, this);
-                
+
                 Field interceptorField = accessible(com.sun.jmx.mbeanserver.JmxMBeanServer.class.getDeclaredField("mbsInterceptor"));
-//                this.origMBeanServer = ((com.sun.jmx.mbeanserver.JmxMBeanServer) platformMBeanServer).getMBeanServerInterceptor();
+                //                this.origMBeanServer = ((com.sun.jmx.mbeanserver.JmxMBeanServer) platformMBeanServer).getMBeanServerInterceptor();
                 this.origMBeanServer = (MBeanServer) interceptorField.get(platformMBeanServer);
-//                ((com.sun.jmx.mbeanserver.JmxMBeanServer) platformMBeanServer).setMBeanServerInterceptor(interceptor);
+                //                ((com.sun.jmx.mbeanserver.JmxMBeanServer) platformMBeanServer).setMBeanServerInterceptor(interceptor);
                 interceptorField.set(platformMBeanServer, interceptor);
             }
             // accessible(ManagementFactory.class.getDeclaredField("platformMBeanServer")).set(null, this);
