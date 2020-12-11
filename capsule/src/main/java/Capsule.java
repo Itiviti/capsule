@@ -2536,11 +2536,14 @@ public class Capsule implements Runnable, InvocationHandler {
         for (String a : getAttribute(ATTR_JVM_ARGS)) {
             a = a.trim();
             if (!a.isEmpty() && !a.startsWith("-Xbootclasspath:") && !a.startsWith("-javaagent:"))
+            {
                 a = expand(a);
-                if (!addJava9ModulesJvmArg(a, jvmArgs)) {
+                if (!addJava9ModulesJvmArg(a, jvmArgs))
+                {
                     a = toNativePath(a);
                     jvmArgs.put(getJvmArgKey(a), a);
                 }
+            }
         }
 
         return new ArrayList<String>(jvmArgs.values());
