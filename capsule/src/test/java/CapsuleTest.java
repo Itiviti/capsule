@@ -1318,12 +1318,55 @@ public class CapsuleTest {
     }
 
     @Test
+    public void testParseJavaVersion9plus()
+    {
+        int[] ver;
+
+        ver = Capsule.parseJavaVersion("11");
+        assertArrayEquals(ver, ints(11, 0, 0, 0, 0));
+        assertEquals("11.0.0", Capsule.toJavaVersionString(ver));
+
+        ver = Capsule.parseJavaVersion("11.0.9");
+        assertArrayEquals(ver, ints(11, 0, 9, 0, 0));
+        assertEquals("11.0.9", Capsule.toJavaVersionString(ver));
+
+        ver = Capsule.parseJavaVersion("11.0.9-ea");
+        assertArrayEquals(ver, ints(11, 0, 9, 0, -3));
+        assertEquals("11.0.9-ea", Capsule.toJavaVersionString(ver));
+
+        ver = Capsule.parseJavaVersion("11.0.9.1");
+        assertArrayEquals(ver, ints(11, 0, 9, 1, 0));
+        assertEquals("11.0.9.1", Capsule.toJavaVersionString(ver));
+
+        ver = Capsule.parseJavaVersion("11.2.9.1");
+        assertArrayEquals(ver, ints(11, 2, 9, 1, 0));
+        assertEquals("11.2.9.1", Capsule.toJavaVersionString(ver));
+
+        ver = Capsule.parseJavaVersion("11.0.9.1-ea");
+        assertArrayEquals(ver, ints(11, 0, 9, 1, -3));
+        assertEquals("11.0.9.1-ea", Capsule.toJavaVersionString(ver));
+
+        ver = Capsule.parseJavaVersion("11.0.9.1-ea+1-opt");
+        assertArrayEquals(ver, ints(11, 0, 9, 1, -3));
+        assertEquals("11.0.9.1-ea", Capsule.toJavaVersionString(ver));
+
+        ver = Capsule.parseJavaVersion("11.0.9.1+-opt");
+        assertArrayEquals(ver, ints(11, 0, 9, 1, 0));
+        assertEquals("11.0.9.1", Capsule.toJavaVersionString(ver));
+
+        ver = Capsule.parseJavaVersion("9.0.1+-opt");
+        assertArrayEquals(ver, ints(9, 0, 1, 0, 0));
+        assertEquals("9.0.1", Capsule.toJavaVersionString(ver));
+    }
+
+    @Test
     public void testCompareVersions() {
         assertTrue(Capsule.compareVersions("1.8.0_30-ea", "1.8.0_30") < 0);
         assertTrue(Capsule.compareVersions("1.8.0_30-ea", "1.8.0_20") > 0);
         assertTrue(Capsule.compareVersions("1.8.0-ea", "1.8.0_20") < 0);
         assertTrue(Capsule.compareVersions("1.8.0-ea", "1.8.0") < 0);
         assertTrue(Capsule.compareVersions("1.8.0-ea", "1.7.0") > 0);
+        assertTrue(Capsule.compareVersions("11", "10.0.1.0") > 0);
     }
 
     @Test
