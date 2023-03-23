@@ -5429,8 +5429,9 @@ public class Capsule implements Runnable, InvocationHandler {
     // visible for testing
     static Path createPathingJar(Path dir, List<Path> cp) {
         try {
-            final List<String> paths = createPathingClassPath(cp);
-            final Path pathingJar = Files.createTempFile(dir.toAbsolutePath(), "capsule_pathing_jar", ".jar");
+            final Path absolutePath = dir.toAbsolutePath();
+            final List<String> paths = createPathingClassPath(absolutePath, cp);
+            final Path pathingJar = Files.createTempFile(absolutePath, "capsule_pathing_jar", ".jar");
             final Manifest man = new Manifest();
             man.getMainAttributes().putValue(ATTR_MANIFEST_VERSION, "1.0");
             man.getMainAttributes().putValue(ATTR_CLASS_PATH, join(paths, " "));
@@ -5442,11 +5443,22 @@ public class Capsule implements Runnable, InvocationHandler {
         }
     }
 
-    private static List<String> createPathingClassPath(List<Path> cp) {
+    private static List<String> createPathingClassPath(Path dir, List<Path> cp) {
+        boolean allPathsHaveSameRoot = true;
+        for (Path p : cp) {
+            if (!dir.getRoot().equals(p.getRoot())) {
+                allPathsHaveSameRoot = false;
+                break;
+            }
+        }
+
         final List<String> paths = new ArrayList<>(cp.size());
         for (Path p : cp) { // In order to use the Class-Path attribute, we must either relativize the paths, or specify them as file URLs
-            // always use absolute path to avoid encoding issue
-            paths.add(p.toUri().toString());
+            if (allPathsHaveSameRoot)
+                // path must be at least encoding spaces since ATTR_CLASS_PATH is delimited by space in createPathingJar()
+                paths.add(dir.relativize(p).toString().replace(" ", "%20"));
+            else
+                paths.add(p.toUri().toString());
         }
         return paths;
     }

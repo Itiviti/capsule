@@ -29,7 +29,7 @@ subprojects {
     [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 
     group               = "co.paralleluniverse"
-    version             = "1.0.4-ullink4"
+    version             = "1.0.4-ullink5"
     status              = "integration"
     description         = "Simple Java deployment"
     ext.url             = "https://github.com/puniverse/capsule"
@@ -59,10 +59,10 @@ subprojects {
     }
 
     dependencies {
-        testCompile 'junit:junit:4.12'
-        testCompile 'org.truth0:truth:0.23'
-        testCompile 'com.google.jimfs:jimfs:1.1'
-        testCompile 'org.jooq:joor:0.9.6'
+        testImplementation 'junit:junit:4.12'
+        testImplementation 'org.truth0:truth:0.23'
+        testImplementation 'com.google.jimfs:jimfs:1.1'
+        testImplementation 'org.jooq:joor:0.9.6'
         javancss 'org.codehaus.javancss:javancss:33.54'
     }
 
@@ -231,8 +231,8 @@ project (':capsule') {
 
 project (':capsule-util') {
     dependencies {
-        runtime project(':capsule')
-        compile files("${System.getProperty('java.home')}/../lib/tools.jar")
+        runtimeOnly project(':capsule')
+        implementation files("${System.getProperty('java.home')}/../lib/tools.jar")
     }
 
     javadoc {
