@@ -8,11 +8,13 @@
  */
 package co.paralleluniverse.capsule;
 
-import com.google.common.jimfs.Jimfs;
 import static com.google.common.truth.Truth.assert_;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.io.IOException;
 import java.io.InputStream;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -22,7 +24,7 @@ import java.util.List;
 import java.util.Properties;
 import org.junit.After;
 import org.junit.Test;
-import static org.junit.Assert.*;
+import com.google.common.jimfs.Jimfs;
 
 /**
  *
@@ -50,7 +52,7 @@ public class CapsuleLauncherTest {
                 .addEntry("lib/a.jar", emptyInputStream())
                 .addEntry("lib/b.class", emptyInputStream())
                 .addEntry("q/w/x.txt", emptyInputStream())
-                .addEntry("d\\f\\y.txt", emptyInputStream()) // test with Windows path
+                .addEntry("d/f/y.txt", emptyInputStream())
                 .addEntry("META-INF/x.txt", emptyInputStream());
 
         List<String> args = list("hi", "there");

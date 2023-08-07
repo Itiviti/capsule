@@ -6,13 +6,8 @@
  * of the Eclipse Public License v1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
-import capsule.test.Pair;
-import co.paralleluniverse.capsule.Jar;
-import co.paralleluniverse.capsule.test.CapsuleTestUtils;
-import co.paralleluniverse.common.FlexibleClassLoader;
-import co.paralleluniverse.common.JarClassLoader;
-import co.paralleluniverse.common.PathClassLoader;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
@@ -20,9 +15,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import org.junit.Test;
+import capsule.test.Pair;
+import co.paralleluniverse.capsule.Jar;
+import co.paralleluniverse.capsule.test.CapsuleTestUtils;
+import co.paralleluniverse.common.FlexibleClassLoader;
+import co.paralleluniverse.common.JarClassLoader;
+import co.paralleluniverse.common.PathClassLoader;
 
 /**
  * @author circlespainter

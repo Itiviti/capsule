@@ -7,21 +7,29 @@
  * http://www.eclipse.org/legal/epl-v10.html
  */
 
-import co.paralleluniverse.capsule.Jar;
-import co.paralleluniverse.capsule.test.CapsuleTestUtils;
-import co.paralleluniverse.capsule.test.CapsuleTestUtils.StringPrintStream;
-import static co.paralleluniverse.capsule.test.CapsuleTestUtils.*;
+import static co.paralleluniverse.capsule.test.CapsuleTestUtils.DEVNULL;
+import static co.paralleluniverse.capsule.test.CapsuleTestUtils.isCI;
+import static co.paralleluniverse.capsule.test.CapsuleTestUtils.resetOutputStreams;
+import static co.paralleluniverse.capsule.test.CapsuleTestUtils.rethrow;
+import static co.paralleluniverse.capsule.test.CapsuleTestUtils.setCacheDir;
+import static co.paralleluniverse.capsule.test.CapsuleTestUtils.setProperties;
+import static co.paralleluniverse.capsule.test.CapsuleTestUtils.setSTDERR;
+import static co.paralleluniverse.capsule.test.CapsuleTestUtils.setSTDOUT;
+import static com.google.common.truth.Truth.assert_;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 
-import co.paralleluniverse.common.ZipFS;
-import com.google.common.jimfs.Configuration;
-import com.google.common.jimfs.Jimfs;
 import java.io.IOException;
 import java.io.InputStream;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import java.nio.file.FileSystem;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
@@ -35,14 +43,16 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.jar.JarInputStream;
-import org.junit.After;
-import org.junit.Test;
-import static org.junit.Assert.*;
-import static org.junit.Assume.*;
-import org.junit.Before;
-import static com.google.common.truth.Truth.*;
-import java.nio.file.Paths;
 import org.joor.Reflect;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import co.paralleluniverse.capsule.Jar;
+import co.paralleluniverse.capsule.test.CapsuleTestUtils;
+import co.paralleluniverse.capsule.test.CapsuleTestUtils.StringPrintStream;
+import co.paralleluniverse.common.ZipFS;
+import com.google.common.jimfs.Configuration;
+import com.google.common.jimfs.Jimfs;
 //import static org.mockito.Mockito.*;
 
 public class CapsuleTest {
@@ -86,7 +96,7 @@ public class CapsuleTest {
                 .addEntry("lib/a.jar", emptyInputStream())
                 .addEntry("lib/b.class", emptyInputStream())
                 .addEntry("q/w/x.txt", emptyInputStream())
-                .addEntry("d\\f\\y.txt", emptyInputStream()) // test with Windows path
+                .addEntry("d/f/y.txt", emptyInputStream()) // test with Windows path
                 .addEntry("META-INF/x.txt", emptyInputStream());
 
         List<String> args = list("hi", "there");
