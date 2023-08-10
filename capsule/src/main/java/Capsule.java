@@ -52,6 +52,7 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.nio.charset.Charset;
 import java.nio.file.DirectoryStream;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -81,6 +82,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.Random;
 import java.util.RandomAccess;
 import java.util.Set;
 import java.util.StringTokenizer;
@@ -5459,7 +5461,8 @@ public class Capsule implements Runnable, InvocationHandler {
         try {
             final Path absolutePath = dir.toAbsolutePath();
             final List<String> paths = createPathingClassPath(absolutePath, cp);
-            final Path pathingJar = Files.createTempFile(absolutePath, "capsule_pathing_jar", ".jar");
+
+            final Path pathingJar = createTempFile(absolutePath, "capsule_pathing_jar", ".jar");
             final Manifest man = new Manifest();
             man.getMainAttributes().putValue(ATTR_MANIFEST_VERSION, "1.0");
             man.getMainAttributes().putValue(ATTR_CLASS_PATH, join(paths, " "));
@@ -5468,6 +5471,22 @@ public class Capsule implements Runnable, InvocationHandler {
             return pathingJar;
         } catch (IOException e) {
             throw new RuntimeException("Pathing JAR creation failed", e);
+        }
+    }
+
+    private static Path createTempFile(Path dir, String prefix, String suffix) throws IOException
+    {
+        for (;;)
+        {
+            try
+            {
+                String rand = Long.toUnsignedString(new Random().nextLong(), 16);
+                return Files.createFile(dir.resolve(prefix + rand + suffix));
+            }
+            catch (FileAlreadyExistsException ex)
+            {
+                // ignore
+            }
         }
     }
 
