@@ -7,6 +7,16 @@
  * http://www.eclipse.org/legal/epl-v10.html
  */
 
+import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.emptySet;
+import static java.util.Collections.singleton;
+import static java.util.Collections.singletonList;
+import static java.util.Collections.singletonMap;
+import static java.util.Collections.unmodifiableList;
+import static java.util.Collections.unmodifiableSet;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.EOFException;
@@ -42,6 +52,7 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.nio.charset.Charset;
 import java.nio.file.DirectoryStream;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -59,17 +70,23 @@ import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Properties;
+import java.util.Random;
+import java.util.RandomAccess;
 import java.util.Set;
 import java.util.StringTokenizer;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
 import java.util.jar.JarInputStream;
@@ -77,21 +94,15 @@ import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
-import java.util.Properties;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.RandomAccess;
-import java.util.concurrent.atomic.AtomicReference;
 import javax.management.MBeanServer;
 import javax.management.MBeanServerConnection;
 import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
-
-import static java.util.Collections.*;
-import static java.util.Arrays.asList;
 
 /**
  * An application capsule.
@@ -3693,20 +3704,39 @@ public class Capsule implements Runnable, InvocationHandler {
         return true;
     }
 
-    private List<Path> listJar(Path jar, String glob, boolean regular) {
-        final long start = clock();
-        final List<Path> res = new ArrayList<>();
-        final Pattern p = Pattern.compile(globToRegex(glob));
-        try (ZipInputStream zis = openJarInputStream(jar)) {
-            for (ZipEntry entry; (entry = zis.getNextEntry()) != null;) {
-                if ((!regular || !entry.isDirectory()) && p.matcher(entry.getName()).matches())
-                    res.add(path(entry.getName())); // new URL("jar", "", jar + "!/" + entry.getName())
-            }
-        } catch (IOException e) {
+    private List<Path> listJar(Path jar, String glob, boolean regular)
+    {
+        long start = clock();
+        try (FileSystem fileSystem = FileSystems.newFileSystem(jar, null))
+        {
+            Matcher matcher = Pattern.compile(globToRegex(glob)).matcher("");
+            return StreamSupport.stream(fileSystem.getRootDirectories().spliterator(), false)
+                .flatMap(rootDir -> {
+                    try
+                    {
+                        return Files.walk(rootDir);
+                    }
+                    catch (IOException e)
+                    {
+                        throw new RuntimeException(e);
+                    }
+                })
+                .filter(p -> !regular || Files.isRegularFile(p))
+                .map(Path::toString)
+                .map(p -> p.startsWith("/") ? p.substring(1) : p)
+                .filter(p -> matcher.reset(p).matches())
+                .map(this::path)
+                .sorted()
+                .collect(Collectors.toList());
+        }
+        catch (IOException e)
+        {
             throw rethrow(e);
         }
-        time("listJar", start);
-        return res;
+        finally
+        {
+            time("listJar", start);
+        }
     }
 
     private Path mergeCapsule(Path wrapperCapsule, Path wrappedCapsule, Path outCapsule) throws IOException {
@@ -5431,7 +5461,8 @@ public class Capsule implements Runnable, InvocationHandler {
         try {
             final Path absolutePath = dir.toAbsolutePath();
             final List<String> paths = createPathingClassPath(absolutePath, cp);
-            final Path pathingJar = Files.createTempFile(absolutePath, "capsule_pathing_jar", ".jar");
+
+            final Path pathingJar = createTempFile(absolutePath, "capsule_pathing_jar", ".jar");
             final Manifest man = new Manifest();
             man.getMainAttributes().putValue(ATTR_MANIFEST_VERSION, "1.0");
             man.getMainAttributes().putValue(ATTR_CLASS_PATH, join(paths, " "));
@@ -5440,6 +5471,22 @@ public class Capsule implements Runnable, InvocationHandler {
             return pathingJar;
         } catch (IOException e) {
             throw new RuntimeException("Pathing JAR creation failed", e);
+        }
+    }
+
+    private static Path createTempFile(Path dir, String prefix, String suffix) throws IOException
+    {
+        for (;;)
+        {
+            try
+            {
+                String rand = Long.toUnsignedString(new Random().nextLong(), 16);
+                return Files.createFile(dir.resolve(prefix + rand + suffix));
+            }
+            catch (FileAlreadyExistsException ex)
+            {
+                // ignore
+            }
         }
     }
 

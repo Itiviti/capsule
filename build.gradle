@@ -29,7 +29,7 @@ subprojects {
     [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 
     group               = "co.paralleluniverse"
-    version             = "1.0.4-ullink5"
+    version             = "1.0.4-ullink6"
     status              = "integration"
     description         = "Simple Java deployment"
     ext.url             = "https://github.com/puniverse/capsule"
@@ -49,10 +49,6 @@ subprojects {
     }
 
     configurations {
-        javancss
-    }
-
-    configurations {
         [compile, runtime]*.resolutionStrategy {
             failOnVersionConflict()
         }
@@ -63,7 +59,6 @@ subprojects {
         testImplementation 'org.truth0:truth:0.23'
         testImplementation 'com.google.jimfs:jimfs:1.1'
         testImplementation 'org.jooq:joor:0.9.6'
-        javancss 'org.codehaus.javancss:javancss:33.54'
     }
 
     test {
@@ -132,26 +127,6 @@ subprojects {
     //    tasks.withType(JavaCompile) {
     //        options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
     //    }
-
-    task javancss(dependsOn: 'classes') {
-        doLast {
-            ant {
-                logging.level = LogLevel.INFO
-                taskdef(name: 'javancss', classname: 'javancss.JavancssAntTask', classpath: configurations.javancss.asPath)
-                javancss(
-                        srcdir: 'src/main/java',
-                        abortOnFail: 'true',
-                        generateReport: 'true',
-                        packageMetrics: 'true',
-                        classMetrics: 'false',
-                        functionMetrics: 'false'
-                        // outputFile: reportName,
-                )
-            }
-        }
-    }
-
-    assemble.dependsOn javancss
 
     ///////// Publish Artifacts
     apply plugin: 'maven'
