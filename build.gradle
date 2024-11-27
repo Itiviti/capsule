@@ -1,10 +1,8 @@
 buildscript {
     repositories {
         mavenCentral()
-        jcenter()
     }
     dependencies {
-        // classpath 'net.saliman:gradle-cobertura-plugin:2.2.4'
         classpath 'info.solidsoft.gradle.pitest:gradle-pitest-plugin:1.1.1'
         classpath 'org.kt3k.gradle.plugin:coveralls-gradle-plugin:2.1.0'
     }
@@ -12,7 +10,7 @@ buildscript {
 
 allprojects {
     apply plugin: 'com.github.kt3k.coveralls'
-    apply plugin: 'jacoco' // 'cobertura'
+    apply plugin: 'jacoco'
 
     repositories {
         mavenCentral()
@@ -29,24 +27,17 @@ subprojects {
     [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 
     group               = "co.paralleluniverse"
-    version             = "1.0.4-ullink6"
+    version             = "1.0.4-ullink7"
     status              = "integration"
     description         = "Simple Java deployment"
     ext.url             = "https://github.com/puniverse/capsule"
     ext.vendor          = "Parallel Universe Software Co."
     ext.licenseName     = "Eclipse Public License - v 1.0"
     ext.licenseUrl      = "http://www.eclipse.org/legal/epl-v10.html"
-    ext.scmUrl          = "https://github.com/puniverse/capsule"
-    ext.scmConnection   = "https://github.com/puniverse/capsule.git"
+    ext.scmUrl          = "https://github.com/Itiviti/capsule"
+    ext.scmConnection   = "https://github.com/Itiviti/capsule.git"
     ext.distDir         = "$buildDir/dist"
     ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
-
-    // User and Password are taken from ~/.gradle/gradle.properties
-    if (!project.hasProperty("sonatypeUsername") || !project.hasProperty("sonatypePassword")) {
-        println "sonatype username or password not set"
-        ext.sonatypeUsername = ""
-        ext.sonatypePassword = ""
-    }
 
     configurations {
         [compile, runtime]*.resolutionStrategy {
@@ -114,13 +105,15 @@ subprojects {
         options.links = [ "http://docs.oracle.com/javase/7/docs/api/" ]
     }
 
-    task sourcesJar(type: Jar, dependsOn: classes) {
-        classifier = 'sources'
+    tasks.register('sourcesJar', Jar) {
+        dependsOn classes
+        archiveClassifier = 'sources'
         from sourceSets.main.allSource
     }
 
-    task javadocJar(type: Jar, dependsOn: javadoc) {
-        classifier = 'javadoc'
+    tasks.register('javadocJar', Jar) {
+        dependsOn javadoc
+        archiveClassifier = 'javadoc'
         from javadoc.destinationDir
     }
 
@@ -143,52 +136,12 @@ subprojects {
         sign configurations.archives
     }
 
-    uploadArchives {
-        repositories {
-            mavenDeployer {
-                beforeDeployment { deployment -> signing.signPom(deployment) }
-
-                repository(
-                    url: (isReleaseVersion ?
-                              "https://oss.sonatype.org/service/local/staging/deploy/maven2" :
-                              "https://oss.sonatype.org/content/repositories/snapshots")) {
-                    authentication(userName: sonatypeUsername, password: sonatypePassword)
-                }
-
-                pom.project {
-                    name project.name
-                    packaging 'jar'
-                    description project.description
-                    url project.url
-                    scm {
-                        url project.scmUrl
-                        connection project.scmConnection
-                        developerConnection project.scmConnection
-                    }
-                    licenses {
-                        license {
-                            name project.licenseName
-                            url project.licenseUrl
-                            distribution 'repo'
-                        }
-                    }
-                    developers {
-                        developer {
-                            id 'pron'
-                            name 'Ron Pressler'
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     defaultTasks 'build'
 }
 
 project (':capsule') {
     dependencies {
-        testCompile project(':capsule-util')
+        testImplementation project(':capsule-util')
     }
 
     jar {
@@ -217,11 +170,11 @@ project (':capsule-util') {
     }
 }
 
-task jacocoRootReport(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
+tasks.register('jacocoRootReport', org.gradle.testing.jacoco.tasks.JacocoReport) {
     dependsOn = subprojects.test
-    sourceDirectories = files(subprojects.sourceSets.main.allSource.srcDirs)
-    classDirectories =  files(subprojects.sourceSets.main.output)
-    executionData = files(subprojects.jacocoTestReport.executionData)
+    sourceDirectories.from files(subprojects.sourceSets.main.allSource.srcDirs)
+    classDirectories.from files(subprojects.sourceSets.main.output)
+    executionData.from files(subprojects.jacocoTestReport.executionData)
     reports {
         html.enabled = true
         xml.enabled = true
